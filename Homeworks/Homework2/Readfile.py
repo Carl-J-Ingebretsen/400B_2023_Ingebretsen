@@ -34,4 +34,4 @@ def Read(filename):
 t,tot,d = Read(file_name)
 print("time: ", t)
 print("total number of particles: ", tot)
-print("data: ", d['type'][1])'''
+print("data: ", d['x'][1])'''

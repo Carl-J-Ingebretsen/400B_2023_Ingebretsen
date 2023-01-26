@@ -11,7 +11,8 @@ def ParticleInfo(filename, particle_type, particle_num):
     '''This function returns the properties of any selected particle from the 
     data file on the galaxy simulations.
     Inputs: filename (string), particle_type (float), particle number (int) (to identify the particle)
-    Returns: Magnitude of distance in  kpc (round to 3 decimal places), Magnitude of velocity in km\s
+    Returns: Magnitude of distance in  kpc (round to 3 decimal places)
+    Magnitude of distance in  lyrs (round to 3 decimal places), Magnitude of velocity in km\s
     (round to 3 decimal places), mass in units of M_sol. '''
 
     #Read in the file again
@@ -27,24 +28,27 @@ def ParticleInfo(filename, particle_type, particle_num):
     vy = data['vy'][index]*u.kilometer/u.second
     vz = data['vz'][index]*u.kilometer/u.second
     #The masses
-    m = (data['m'][index])**(-10)#Will this work??
+    m = (data['m'][index])*1e10
     #Calculate the quantities for the particle of interest.
     #Mass in solar masses
     mass=m[particle_num]*u.Msun
     #Magnitude of distance
-    d = np.around((x[particle_num]**2+y[particle_num]**2+z[particle_num]**2)**0.5,3)
+    d = (x[particle_num]**2+y[particle_num]**2+z[particle_num]**2)**0.5
     #in light years
     d_lyrs = np.around(d.to(u.lyr),3)
+    #in kpc at 3 decimal places
+    d = np.around(d,3)
     #Magnitude of velocity
     v = np.around((vx[particle_num]**2+vy[particle_num]**2+vz[particle_num]**2)**0.5,3)
 
     #test the function
-    print("mass: ", mass)
+    '''print("mass: ", mass)
     print("distance (lyrs): ", d_lyrs)
-    print("Velocity: ", v)
+    print('distance (kpc): ', d)
+    print("Velocity: ", v)'''
     #Return all the results
-    return d,v,mass
+    return d,d_lyrs,v,mass
 
 #test the function
-ParticleInfo("MW_000.txt", 2.0, 99)
+#ParticleInfo("MW_000.txt", 2.0, 99)
 
