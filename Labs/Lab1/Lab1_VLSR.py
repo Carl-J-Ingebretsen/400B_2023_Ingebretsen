@@ -168,6 +168,9 @@ def Hernquist_Sphere(v,r,a=30*u.kpc):
     """This function calculates the enclosed mass of the galaxy at radius r
     assuming a Hernquist Sphere model with a scale radius of a.
     The Hernquist modle is rho(r)=M/(2pi)*a/(r(r+a)^3)
+    Potentail: phi=-G*M/(r+a)
+    The escape speed is: v^2=2|phi|
+    The mass is: M=vesc^2/(2GM)*(r+a)
     The velocity of the galaxy is:
     v^2=2 int_0^r[Grho(r)/r dV]. This results in an expression for the mass of:
     M=v^2a/(2G)*(r^2+2ar+a^2)/(r(r+2a)).
@@ -178,9 +181,13 @@ def Hernquist_Sphere(v,r,a=30*u.kpc):
     a: the scale radius of the model in (kpc)
     Returns:
     M: the enclosed mass in M_sol."""
+
+
     
     v_kpcGyr = v.to(u.kpc/u.Gyr) #conver v from km/s it kpc/Gyr
-    M=(v_kpcGyr**2*a)/(2*Grav)*(r**2+2*r*a+a**2)/(r*(r+a))
+    #M=(v_kpcGyr**2*a)/(2*Grav)*(r**2+2*r*a+a**2)/(r*(r+a)) #using the integral method
+    #Alternate way with potential
+    M=v_kpcGyr**2/2/Grav*(r+a)
     return M
 
 #Mass determined with hernquist sphere:
@@ -191,7 +198,7 @@ print(f"{M_Hern:.2e}")
 M_iso_Leo = MassIso(r_Leo,v_Leo)
 print("The mass with the isothermal Sphere model is: ", M_iso_Leo)
 print(f"{M_iso_Leo:.2e}")
-print("The Hernquist Model gives a mass that is about a factor of 10 lower than\
+print("The Hernquist Model gives a mass that is about a factor of 2 lower than\
       the isothermal sphere model for the same radius and speed.")
 
 
