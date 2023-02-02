@@ -107,10 +107,14 @@ ax = plt.subplot(111)
 
 # Plot the default values (y axis log)
 # ADD HERE
-
+mK = np.arange(-26,-16.9,0.1)
+ax.semilogy(mK,schechter_M(mK),color='blue',linewidth=5,label='Smith+2009')
 # Q2 solutions: change alpha
 # ADD HERE
-
+#With the alpha -1.35 from Ferrarese+2016)
+ax.semilogy(mK,schechter_M(mK,alpha=-1.35),color='red',linewidth=5,linestyle=':',label='Ferrarese+2016')
+#Now try alpha=-0.6
+ax.semilogy(mK,schechter_M(mK,alpha=-0.6),color='yellow',linewidth=5,linestyle='-.',label='alpha=-0.6')
 
 # Add labels
 plt.xlabel(r'M$_k$ + 5Log($h$)', fontsize=22)
@@ -126,7 +130,7 @@ matplotlib.rcParams['ytick.labelsize'] = label_size
 
 # add a legend with some customizations.
 legend = ax.legend(loc='upper right',fontsize='x-large')
-
+plt.show()
 # Save to a file
 #plt.savefig('Schechter_M.png')
 
@@ -147,9 +151,28 @@ legend = ax.legend(loc='upper right',fontsize='x-large')
 # $n_\ast$ = 0.008  $h^3$ Mpc$^{-3}$
 # 
 # $L_\star = 1.4 \times 10^{10} L_\odot$
+def schechter_L(lum,n_star=8e-3,l_star=1.4e10,alpha=-0.7):
+    '''This function implememnts the Schecter function in luminosity
+    the default values are from Spark and Gallagher
+    
+    Input:
+        lum: array of floats (array of luminosities in Lsun)
+        
+            n_star: normalization of the schecter function in (h^3 Mpc^-3)
+            
+            l_star: characterisitic luminosity of the schecter knee in Lsun
+            
+            alpha: float, the faint slope
+            
+    Returns:
+    
+        schecter_l: float
+        number density of galaxies for a given luminosity (h^3/Mpc^-3/Lsun) '''
 
-
-
+    a = (lum/l_star)**alpha
+    b = np.exp(-lum/l_star)
+    schechter_l = n_star/l_star*a*b
+    return schechter_l
 
 
 
@@ -182,6 +205,26 @@ def ex(x):
 
 print(quad(lambda x: ex(x), 0, np.pi))
 
+#What fraction of the luminosity that lies above L*
+#Alpha =-0.7
+l_upper = quad(lambda l: l*schechter_L(l), 1.4e10, 1e14)
+print("l_upper: ", l_upper)
+
+total_luminosity=quad(lambda l: l*schechter_L(l), 0.1, 1e14)
+print("The flux ratio (>L*)/L_total: ", np.round(l_upper[0]/total_luminosity[0], 3))
+
+#Alpha =-1
+l_upper_1 = quad(lambda l: l*schechter_L(l,alpha=-1), 1.4e10, 1e14)
+print("l_upper: ", l_upper_1)
+total_luminosity=quad(lambda l: l*schechter_L(l,alpha=-1.0), 0.1, 1e14)
+print("The flux ratio (>L*)/L_total alpha=-1: ", np.round(l_upper_1[0]/total_luminosity[0], 3))
+
+#Alpha =-1.85
+l_upper_2 = quad(lambda l: l*schechter_L(l,alpha=-1.85), 1.4e10, 1e14)
+print("l_upper: ", l_upper_2)
+total_luminosity=quad(lambda l: l*schechter_L(l,alpha=-1.85), 0.1, 1e14)
+print("The flux ratio (>L*)/L_total alpha=-1.85: ", np.round(l_upper_2[0]/total_luminosity[0], 3))
+
 
 # ## Part B: IMF 
 # 
@@ -190,6 +233,29 @@ print(quad(lambda x: ex(x), 0, np.pi))
 # \begin{equation}
 # \xi(M) = \xi_0 (M/M_\odot)^{-\alpha}
 # \end{equation}
+
+def salpeter(M,alpha=2.35,m_min=0.1,m_max=120):
+    '''This function implements the Salpeter IMF. the function is normalized such that it returns the
+    fraction of stars expected at the given range of masses M (assuming stars in the range of mass m_min to m_max).
+        sigma(M)=sigma_0*(M/M_sol)**(-alpha)
+        
+    Inputs:
+        M: an array of floats
+        the masses in solar masses
+        
+        alpha: the exoponent of the salpeter (float)
+        
+        m_min: the minimum star mass in solar masses (float)
+        
+        m_max: the maximum star mass in solar masses (float)
+        
+    returns:
+        normalized_salpeter: (float) the normalized fraction of stars at a given mass'''
+    
+    #Find the normalization factor
+    norm = 1/(quad(lambda M: M**(-alpha),m_min,m_max)[0])
+    norm_salpeter = norm*M**(-alpha) #make the fraction
+    return norm_salpeter
 # 
 # $\alpha = 2.35$
 # The function should take as input an array of stellar masses, M. 
@@ -213,27 +279,51 @@ print(quad(lambda x: ex(x), 0, np.pi))
 # ## Q1: 
 # Double Check: if you integrate your function from 0.1 to 120 you should return 1.0 
 # 
-
-
-
-
-
-
+test = quad(lambda m: salpeter(m), 0.1,120)[0]
+print("salpeter test: ", test)
 
 # ## Q2: 
 # Integrate your normalized function to compute the fraction of stars with stellar masses greater than the sun and less 
 # than 120 M$_\odot$.
 
-
-
-
-
+frac_sun = quad(lambda m: salpeter(m), 1.0,120.0)[0]
+print("salpeter greater than sun: ", np.round(frac_sun,3))
+#cluster with 5000 stars
+print(5000*np.round(frac_sun,3))
 
 # ## Q3:
 # 
 # How might you modify the above to return the fraction of MASS ? instead of fraction of the total numbers of stars.
 
+def salpeter_mass(M,alpha=2.35,m_min=0.1,m_max=120):
+    '''This function implements the Salpeter IMF. the function is normalized such that it returns the
+    fraction of mass expected at the given range of masses M (assuming stars in the range of mass m_min to m_max).
+        sigma(M)=sigma_0*M*(M/M_sol)**(-alpha)
+        
+    Inputs:
+        M: an array of floats
+        the masses in solar masses
+        
+        alpha: the exoponent of the salpeter (float)
+        
+        m_min: the minimum star mass in solar masses (float)
+        
+        m_max: the maximum star mass in solar masses (float)
+        
+    returns:
+        normalized_salpeter: (float) the normalized fraction of mss over a given mass range'''
+    
+    #Find the normalization factor
+    norm = 1/(quad(lambda m: m*m**(-alpha),m_min,m_max)[0])
+    
+    norm_salpeter = norm*M*M**(-alpha) #Normalized salpeter
+    return norm_salpeter
 
+#Fraction of mass in stars that are more massive than the sun
+frac_2 = quad(lambda m: salpeter_mass(m), 1.0,120.0)[0]
+print("Mass fraction of stars more massive than the sun: ", np.round(frac_2,3))
+#Say a 100 sol mass cluster
+print(100*np.round(frac_2,3))
 
 
 
