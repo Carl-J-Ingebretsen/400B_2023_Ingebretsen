@@ -1,0 +1,10 @@
+Carl Ingebretsen
+ASTR400B Homework 7 Answers
+
+1) Plots are attached as separate files.
+
+2) The trajectories from the last homework have many more oscillations. The calculated trajectory from this homework has only one hump.
+
+3) We made the assumption the M33 is a point mass. Since it is an extended mass it will be deformed and orbit differently. We also did not take into account the acceleration due to the Milky Way's gravity.
+
+4)Using the properties of the Milky Way from the simulation we could calculate the acceleration with a similar function to what we've coded.
