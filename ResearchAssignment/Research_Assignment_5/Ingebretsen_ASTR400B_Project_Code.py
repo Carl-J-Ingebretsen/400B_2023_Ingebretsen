@@ -8,12 +8,15 @@ from scipy.optimize import curve_fit
 from matplotlib import pyplot as plt
 import astropy.units as u
 import astropy.constants as const
-from Readfile import Read
+from ReadFile import Read
 from CenterOfMass import CenterOfMass
 from GalaxyMass import ComponentMass
 from MassProfile import MassProfile
 from astropy.constants import G
 import scipy.optimize as so
+import matplotlib
+from matplotlib.colors import LogNorm
+from scipy.optimize import curve_fit
 
 #Outline
 '''
@@ -40,14 +43,34 @@ Fit with a function?
 def main():
     '''This is the main function of this program.'''
 
-def rotate_galaxy():
-    '''Rotate the galaxy to face on'''
+    #1 Load the M31 and MW snap shots
 
-def fit_sersic_profile():
+    #2 Visualize each
+
+    #3Try to have a combined snap shot
+
+    #4 Visulaize it
+
+    #5rotate combined to see rotation curve
+
+    #6 Plot brightness profile of combined
+
+    #M/L=1
+    #7 Fit with Sereic
+
+def fit_sersic_profile(r,Lum,L_cen):
     '''fit a sersic profile to the galaxy
     n=4 for the elliptical bulge
     n~1 for the spiral disk compoennt
     What to use numpy? scipy curve fit?'''
+
+    #Define the combined Sersic profile as a function of two parameters for the bulge and disk
+    Sers = lambda a,b,h: a*(np.e**(-(r/h)**0.25))+b*(np.e**(-(r/h)))
+
+    #Fit with scipy optimize. Fit the a,b, and scale height
+
+    #May need to have two scale heights
+    #return Sers
 
 #From lab 7 this is the sersic for ellipticals
 def sersicE(r,re,n,mtot):
@@ -103,7 +126,7 @@ def density_contour(xdata, ydata, nbins_x, nbins_y, ax=None, **contour_kwargs):
 
     """
 
-    H, xedges, yedges = np.histogram2d(xdata, ydata, bins=(nbins_x,nbins_y), normed=True)
+    H, xedges, yedges = np.histogram2d(xdata, ydata, bins=(nbins_x,nbins_y)) #normed=True
     x_bin_sizes = (xedges[1:] - xedges[:-1]).reshape((1,nbins_x))
     y_bin_sizes = (yedges[1:] - yedges[:-1]).reshape((nbins_y,1))
 
@@ -114,7 +137,7 @@ def density_contour(xdata, ydata, nbins_x, nbins_y, ax=None, **contour_kwargs):
     fmt = {}
     
     ### Adjust Here #### 
-    
+    '''
     # Contour Levels Definitions
     one_sigma = so.brentq(find_confidence_interval, 0., 1., args=(pdf, 0.68))
     two_sigma = so.brentq(find_confidence_interval, 0., 1., args=(pdf, 0.95))
@@ -123,8 +146,6 @@ def density_contour(xdata, ydata, nbins_x, nbins_y, ax=None, **contour_kwargs):
     cont_5 = so.brentq(find_confidence_interval, 0., 1., args=(pdf, 0.30))
     
     # You might need to add a few levels
-
-
     # Array of Contour levels. Adjust according to the above
     levels = [cont_5,one_sigma, cont_4,two_sigma, three_sigma][::-1]
     
@@ -146,7 +167,7 @@ def density_contour(xdata, ydata, nbins_x, nbins_y, ax=None, **contour_kwargs):
             fmt[l] = s
         ax.clabel(contour, contour.levels, inline=True, fmt=fmt, fontsize=12)
     
-    return contour
+    return contour'''
 
 #from lab 7
 def RotateFrame(posI,velI):
@@ -197,3 +218,144 @@ def RotateFrame(posI,velI):
     vel = np.dot(R, velI.T).T
     
     return pos, vel
+
+def plot_rotation(name,rn,vn,snap=800):
+    '''This function should plot the rotation of the galaxy
+    
+    Inputs:
+    rn: the array of rotated positions 
+    vn: the array of rotated velocities
+    name: (string) name of the galaxy to be used
+    snap: (int) the snap number'''
+
+    # plot position of disk particles color coded by velocity along the 3rd axis
+    # plt.scatter(pos1, pos2, c=vel1)
+    # ADD HERE 
+    plt.scatter(rn[:,0],rn[:,2], c=vn[:,1])
+
+    #colorbar
+    cbar = plt.colorbar()
+    cbar.set_label('Vy in km/s', size=22)
+    # Add axis labels
+    plt.xlabel('X-direction', fontsize=22)
+    plt.ylabel('Z-direction', fontsize=22)
+    # calculate the 2D density of the data given
+    #counts,xbins,ybins=np.histogram2d(xD[index],yD[index],bins=100,normed=LogNorm()
+    #adjust tick label font size
+    label_size = 22
+    matplotlib.rcParams['xtick.labelsize'] = label_size 
+    matplotlib.rcParams['ytick.labelsize'] = label_size
+
+    #set axis limits
+    plt.ylim(-40,40)
+    plt.xlim(-40,40)
+    plt.show()
+
+    #Plot the rotation as a funtion of radius
+    Gal=MassProfile(name,800) #Snap 800
+    R=np.arange(0.01,40,0.1)
+    Vcirc=Gal.circularVelocityTotal(R)
+
+    # Make a phase diagram
+    # MW Disk Velocity Field edge on.
+
+    # Plot 2D Histogram one component of  Pos vs Vel 
+    # ADD HERE
+    plt.hist2d(rn[:,0],vn[:,1],bins=500,norm=LogNorm())
+    plt.colorbar()
+
+    # Overplot Circular Velocity from the MassProfile Code
+    # ADD HERE
+    plt.plot(R,Vcirc,color='red')
+    plt.plot(-R,-Vcirc,color='red')
+
+    # Add axis labels
+    plt.xlabel('x', fontsize=22)
+    plt.ylabel('vy', fontsize=22)
+
+    #adjust tick label font size
+    label_size = 22
+    matplotlib.rcParams['xtick.labelsize'] = label_size 
+    matplotlib.rcParams['ytick.labelsize'] = label_size
+    plt.show()
+
+def get_rotated_pos_vec(name,type=2):
+    '''This function gets the rotated rotated frame
+    Inputs:
+    name: string that descrbits the name of the galaxy to be displayed
+    type: 0,1,2, the type of particle to be visualized
+    
+    Returns:
+    rn: the array of rotated positions
+    vn: the array of rotated velocities'''
+
+    # 2 for disk 1 for bulge
+    COMD = CenterOfMass(name,2)
+    # Compute COM of M31 using disk particles
+    COMP = COMD.COM_P(0.1)
+    COMV = COMD.COM_V(COMP[0],COMP[1],COMP[2])
+
+    # Determine positions of disk particles relative to COM 
+    xD = COMD.x - COMP[0].value 
+    yD = COMD.y - COMP[1].value 
+    zD = COMD.z - COMP[2].value 
+
+    # total magnitude
+    rtot = np.sqrt(xD**2 + yD**2 + zD**2)
+
+    # Determine velocities of disk particles relatiev to COM motion
+    vxD = COMD.vx - COMV[0].value 
+    vyD = COMD.vy - COMV[1].value 
+    vzD = COMD.vz - COMV[2].value 
+
+    # total velocity 
+    vtot = np.sqrt(vxD**2 + vyD**2 + vzD**2)
+
+    # Vectors for r and v 
+    r = np.array([xD,yD,zD]).T # transposed 
+    v = np.array([vxD,vyD,vzD]).T
+
+    #rotate the frame
+    rn,vn = RotateFrame(r,v)
+    plot_face_on_galaxy(rn)
+    return rn,vn
+
+def plot_face_on_galaxy(rn):
+    '''This function will plot the galaxy face on
+    Inputs:
+    rn: an array of positions (floats) that describe the positions of the particles'''
+
+    # M31 Disk Density 
+    #fig, ax= plt.subplots(figsize=(10, 10))
+
+    # plot the particle density for M31 
+    # ADD HERE
+    plt.hist2d(rn[:,0],rn[:,1],bins=500,norm=LogNorm(),cmap='magma')
+    plt.colorbar()
+
+    density_contour(rn[:,0],rn[:,1],80,80,colors=['magenta','green','red','yellow','gold'])
+
+    # make the contour plot
+    # x pos, y pos, contour res, contour res, axis, colors for contours.
+    # ADD HERE
+
+    # Add axis labels
+    plt.xlabel('x-direction', fontsize=22)
+    plt.ylabel('y-direction', fontsize=22)
+
+    #set axis limits
+    plt.ylim(-40,40)
+    plt.xlim(-40,40)
+
+    #adjust tick label font size
+    label_size = 22
+    matplotlib.rcParams['xtick.labelsize'] = label_size 
+    matplotlib.rcParams['ytick.labelsize'] = label_size
+    plt.show()
+
+#plot_rotation_test()
+#rn,vn = get_rotated_pos_vec("M31_800.txt")
+#plot_rotation('M31',rn,vn)
+
+rn,vn = get_rotated_pos_vec("Combined_800.txt")
+plot_rotation('Combined',rn,vn)
