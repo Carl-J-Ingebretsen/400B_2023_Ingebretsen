@@ -2,6 +2,7 @@
 #This file contains the code for my semester project in this class
 #I am analyzing the merger remenant of the Milky Way and Andromeda to determine if 
 #the remnant is a S0 type galaxy.
+#Keep disk profile to 1 and fit scale height
 
 import numpy as np
 from scipy.optimize import curve_fit
@@ -20,73 +21,58 @@ from matplotlib.colors import LogNorm
 #Outline
 '''
 1) choose a snap shot after the merger has taken place between MW and M31.
-This will be one from near the end. Probably one from 790-800
+This will be one from near the end. Snap shot 800
 
 2)Compute the COM of the remenant using MW and M31 disk stars
 
 3) Plot the merger remnant stars and see if its elliptical or if it has an obvious disk component 
 A disk component would make it type S0.
 
-4) Possibly plotting a velocity dispersion would help to see if a disk rotation is present
+4) Get a plot of the disk rotation velocity to check if its rotating.
 
 5) Either way then fit a Sersic profile to the galaxy assuming M/L=1
 The elliptical bulge part should be a n=4 de Vaucoulers 
 If a disk is present there should be a contribution from a n~1 spiral disk like component
-I will adjust until one profile or two profiles superimposed on each other fit the galaxy.
 '''
 
 def main():
-    '''This is the main function of this program.'''
+    '''This is the main function of this program. It just calls each function that is
+    being used'''
 
-    #1 Load the M31 and MW snap shots
+    rn,vn = get_rotated_pos_vec("Combined_800.txt") #Get rotated position and velocities
+    plot_rotation('Combined',rn,vn) #Plot a velocity rotation curve
+    cal_Seresic()  #Fit the light profile with a Sersic profile
 
-    #2 Visualize each
-
-    #3Try to have a combined snap shot
-
-    #4 Visulaize it
-
-    #5rotate combined to see rotation curve
-
-    #6 Plot brightness profile of combined
-
-    #M/L=1
-    #7 Fit with Sereic
-
-    #rn,vn = get_rotated_pos_vec("M31_800.txt")
-    #plot_rotation('M31',rn,vn)
-
-    #rn,vn = get_rotated_pos_vec("Combined_800.txt")
-    #plot_rotation('Combined',rn,vn)
-    #cal_Seresic()  
-
-def fit_sersic_profile(r_annuli,Sigma):
+def fit_sersic_profile(r_annuli,Sigma,Gal_Profile):
     '''fit a sersic profile to the galaxy
     n=4 for the elliptical bulge
-    n~1 for the spiral disk compoennt
+    n~1 for the spiral disk component
     The function uses scipy optimize to do the curve fitting.
-    There are no inputs or return values'''
+    
+    Inputs:
+    r_annuli: (array of floats) the radius values as an array
+    Sigma: (array of floats) the array of luminosities of the galaxy
+    Gal_profile: the Sersic profile function to be fitted
 
-    #Define the combined Sersic profile as a function of two parameters for the bulge and disk
-    #do it with the half light radius
-    #Try to do both spiral and elliptical seperately 
-    #Try fitting the index for one profile
-    #Fit with scipy optimize. Fit the a,b, and scale height
+    Returns:
+    params: the array of fitted parameter values
+    '''
 
-    #Sers = lambda r,a,b,h: a*(np.e**(-(r/h)**0.25))+b*(np.e**(-(r/h)))
-    params,pcov = curve_fit(seresicS,r_annuli,Sigma)
-    params_E,pcov_E = curve_fit(sersicE,r_annuli,Sigma)
-    #params,pcov = curve_fit(seresicS_2,r_annuli,Sigma)
+    params,pcov = curve_fit(Gal_Profile,r_annuli,Sigma) #Fit the curve
     print("Params of the fitted Seresic profile: ",params)
-    #print("Params of the fitted Seresic profile: ",params_E)
-
-    #May need to have two scale heights
-    #return Sers
+    print("Sersic index of the profile: ", params[2])
+    #Compute 1-sigma error
+    perr = np.sqrt(np.diag(pcov))
+    print("The error in the Sersic index is: ", perr[2])
+    return params
+    
 
 #From lab 7 this is the sersic for ellipticals
 def sersicE(r,re,n,mtot):
     """This function returns the Sersic Profile for an elliptical galaxy 
-    assuming the mass/light is roughly 1
+    assuming the mass/light is roughly 1. The equation is from class slides
+    I(r) = I_e*exp(-7.67*[(r/R_e)^(1/n)-1])
+
     Input:
     r: (float) the distance from the center of the gal in (kpc)
     re: (float) the effective half light radius in (kpc)
@@ -108,8 +94,9 @@ def sersicE(r,re,n,mtot):
 def seresicS(r,re,h_r,n,mtot):
     '''Make a sersic profile for spirals for spirals
     The equation is : 
-    It is taken from the slides in class and the paper:
-    Set M/L=1 under these assumptions
+    It is taken from the slides in class slides
+    Set M/L=1 under these assumptions:
+    I(r) = I_0*exp(-r/h_r)+I_e*exp(-7.67*[(r/R_e)^(1/n)-1])
     
     Inputs:
     r: the array of floats for the radius
@@ -131,12 +118,22 @@ def seresicS(r,re,h_r,n,mtot):
     b=-7.67*(a-1)
     return Ie*np.exp(b)+I_0*np.exp(-r/h_r)
 
-#Define the Sersic Profile for Spiral galaxies
-#A second version to try out
-def seresicS_2(r,re,h_r,n,mtot,A,B):
-    '''Make a sersic for spirals
-    Set n~1 and M/L=1'''
-
+def seresicS_3(r,re,h_r,mtot):
+    '''Make a sersic profile for spirals for spirals
+    The equation is : 
+    It is taken from the slides in class and the paper:
+    Set M/L=1 under these assumptions
+    
+    Inputs:
+    r: the array of floats for the radius
+    re: the half mass/half light radius as a float
+    h_r: the scale hight of the sprial disk
+    n: the Sersic index
+    mtot: the total mass of the galaxy
+    
+    Returns:
+    an array of floats representing the sersic light profile'''
+    n=1
     #M/L is 1 so total lum is 
     lum = mtot
     #the effective surface brightness
@@ -145,7 +142,7 @@ def seresicS_2(r,re,h_r,n,mtot,A,B):
     #Return the surface brightness profile
     a=(r/re)**(1/n)
     b=-7.67*(a-1)
-    return A*Ie*np.exp(b)+B*I_0*np.exp(-r/h_r)
+    return Ie*np.exp(b)+I_0*np.exp(-r/h_r)
 
 #from lab 7
 def find_confidence_interval(x, pdf, confidence_level):
@@ -325,6 +322,7 @@ def plot_rotation(name,rn,vn,snap=800):
     # Add axis labels
     plt.xlabel('x', fontsize=22)
     plt.ylabel('vy', fontsize=22)
+    plt.xlim(-100,100)
 
     #adjust tick label font size
     label_size = 22
@@ -397,8 +395,10 @@ def plot_face_on_galaxy(rn):
     plt.ylabel('y-direction', fontsize=22)
 
     #set axis limits
-    plt.ylim(-40,40)
-    plt.xlim(-40,40)
+    #plt.ylim(-40,40)
+    #plt.xlim(-40,40)
+    plt.ylim(-80,80)
+    plt.xlim(-80,80)
 
     #adjust tick label font size
     label_size = 22
@@ -411,7 +411,7 @@ def cal_Seresic():
     This graph plots the sersic profile and fits a profile for a spiral and elliptical on top.'''
     # Create a center of mass object 
     # This lets us store the x, y, z, bulge particles 
-    Comb_COM = CenterOfMass("Combined_800.txt", 2) #2 for disks?
+    Comb_COM = CenterOfMass("Combined_800.txt", 2) #2 for disks 3 for bulge
     Comb_COM_p = Comb_COM.COM_P(0.1)
     x = Comb_COM.x-Comb_COM_p[0].value
     y = Comb_COM.y-Comb_COM_p[1].value
@@ -441,48 +441,33 @@ def cal_Seresic():
     Sigma = m_annuli / (np.pi * (radii[1:]**2 - radii[:-1]**2))
 
     r_annuli = np.sqrt(radii[1:] * radii[:-1]) 
-    # here we choose the geometric mean
-    print(r_annuli)
-    print(len(r_annuli))
-    #Fit the light profile
-    #Sers = lambda r,a,b,h: a*(np.e**(-(r/h)**0.25))+b*(np.e**(-(r/h)))
-    params,pcov = curve_fit(seresicS,r_annuli,Sigma)
-    params_E,pcov_E = curve_fit(sersicE,r_annuli,Sigma)
-    #params,pcov = curve_fit(seresicS_2,r_annuli,Sigma)
-    print("Params of the fitted Seresic profile: ",params)
-    #print("Params of the fitted Seresic profile: ",params_E)
+
+    params_spiral = fit_sersic_profile(r_annuli,Sigma,seresicS)
+    params_elliptical = fit_sersic_profile(r_annuli,Sigma,sersicE)
 
     fig, ax = plt.subplots(figsize=(9, 8))
 
     # Surface Density Profile
-    ax.loglog(r_annuli, Sigma, lw=2, alpha=0.8,label='Simulated Galaxy light profile')
-    ax.loglog(r_annuli,seresicS(r_annuli,params[0],params[1],params[2],params[3]),lw=2, alpha=0.8,label='Fitted Galaxy with Spiral')
-    #ax.loglog(r_annuli,seresicS(r_annuli,params[0],params[1],4,params[3]),lw=2, alpha=0.8,label='Fitted Galaxy with Spiral')
-    ax.loglog(r_annuli,sersicE(r_annuli,params_E[0],params_E[1],params_E[2]),lw=2, alpha=0.8,label='Fitted Galaxy with Elliptical')
-    #ax.loglog(r_annuli,seresicS_2(r_annuli,params[0],params[1],params[2],params[3],params[4],params[5]),lw=2, alpha=0.8,label='Fitted Bulge')
-    #This appears to work
-
-    # YOU ADD HERE: Sersic fit to the surface brightness Sersic fit
+    ax.loglog(r_annuli, Sigma, lw=2, alpha=0.8,label='Simulated Galaxy light profile') #Plot the simulated light profile
+    #ax.loglog(r_annuli,seresicS(r_annuli,params[0],params[1],params[2],params[3]),lw=2, alpha=0.8,label='Fitted Galaxy with Spiral') #This works
+    #ax.loglog(r_annuli,seresicS(r_annuli,params[0],params[1],params[2],m_enc),lw=2, alpha=0.8,label='Fitted Galaxy with Spiral')
+    #ax.loglog(r_annuli,seresicS_3(r_annuli,params[0],params[1],params[2]),lw=2, alpha=0.8,label='Fitted Galaxy with Spiral')
+    #ax.loglog(r_annuli,sersicE(r_annuli,params_E[0],params_E[1],params_E[2]),lw=2, alpha=0.8,label='Fitted Galaxy with Elliptical') #This too
+    ax.loglog(r_annuli,seresicS(r_annuli,params_spiral[0],params_spiral[1],params_spiral[2],params_spiral[3]),lw=2, alpha=0.8,label='Fitted Galaxy with Spiral') #This works
+    ax.loglog(r_annuli,sersicE(r_annuli,params_elliptical[0],params_elliptical[1],params_elliptical[2]),lw=2, alpha=0.8,label='Fitted Galaxy with Elliptical') #This too
     # Sersic n = 4 - de Vaucouleurs
     #plt.semilogy(r_annuli,sersicE(r_annuli,params_E[0],4,params[2]), color='red',linestyle="-.",linewidth=3, label='Sersic n=4')
 
     ax.set(xlabel=r"$r$ [kpc]", ylabel=r"$\Sigma$(disk par) [$10^{10} M_\odot$ / kpc$^2$]", title="Galaxy Light Profile")
-    plt.savefig("Galaxy_light_profile")
+    plt.savefig("Galaxy_light_profile_2")
 
     #set axis limits
-    plt.xlim(0.1,50)
+    #plt.xlim(0.1,50)
+    plt.xlim(0.1,1000)
     plt.ylim(1e-6,1)
 
     ax.legend(loc='best')
     fig.tight_layout()
     plt.show()
 
-
-
-#plot_rotation_test()
-#rn,vn = get_rotated_pos_vec("M31_800.txt")
-#plot_rotation('M31',rn,vn)
-
-#rn,vn = get_rotated_pos_vec("Combined_800.txt")
-#plot_rotation('Combined',rn,vn)
-cal_Seresic()
+main()
